@@ -83,3 +83,5 @@ def create_app(engine: TradingEngine) -> FastAPI:
             logger.debug("WebSocket client disconnected")
         except Exception:
             logger.exception("WebSocket error")
+
+    return app
