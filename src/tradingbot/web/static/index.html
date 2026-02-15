@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trading Bot — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-primary: #0a0e17;
+    --bg-panel: #0d1220;
+    --bg-panel-alt: #111827;
+    --border: #1e293b;
+    --border-glow: #22d3ee33;
+    --text-primary: #e2e8f0;
+    --text-secondary: #64748b;
+    --text-dim: #475569;
+    --accent-cyan: #22d3ee;
+    --accent-green: #10b981;
+    --accent-red: #ef4444;
+    --accent-amber: #f59e0b;
+    --accent-purple: #a78bfa;
+    --glow-cyan: 0 0 20px #22d3ee44;
+    --glow-green: 0 0 12px #10b98133;
+    --glow-red: 0 0 12px #ef444433;
+    --font-mono: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', monospace;
+    --font-display: 'Orbitron', sans-serif;
+  }
+
+  body {
+    font-family: var(--font-mono);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Subtle scan-line overlay */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.03) 2px,
+      rgba(0, 0, 0, 0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #0d1220 0%, var(--bg-primary) 100%);
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .logo {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--accent-cyan);
+    text-shadow: var(--glow-cyan);
+  }
+
+  .version {
+    font-size: 10px;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    border-radius: 2px;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 11px;
+  }
+
+  .status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    transition: background 0.3s;
+  }
+
+  .status-dot.connected {
+    background: var(--accent-green);
+    box-shadow: var(--glow-green);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  .status-dot.disconnected {
+    background: var(--accent-red);
+    box-shadow: var(--glow-red);
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .clock {
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Main Grid ── */
+  .dashboard {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 1px;
+    padding: 1px;
+    background: var(--border);
+    min-height: calc(100vh - 53px);
+  }
+
+  .panel {
+    background: var(--bg-panel);
+    padding: 16px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+    opacity: 0.3;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .panel-title {
+    font-family: var(--font-display);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent-cyan);
+  }
+
+  .panel-badge {
+    font-size: 9px;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    padding: 2px 6px;
+    border-radius: 2px;
+  }
+
+  /* ── Status Panel ── */
+  .status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+  }
+
+  .stat-card {
+    background: var(--bg-panel-alt);
+    border: 1px solid var(--border);
+    padding: 14px 16px;
+    border-radius: 2px;
+    transition: border-color 0.3s;
+  }
+
+  .stat-card:hover {
+    border-color: var(--accent-cyan);
+  }
+
+  .stat-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .stat-value {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .stat-value.positive { color: var(--accent-green); text-shadow: var(--glow-green); }
+  .stat-value.negative { color: var(--accent-red); text-shadow: var(--glow-red); }
+  .stat-value.accent { color: var(--accent-cyan); }
+
+  /* ── Tables ── */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  .data-table thead th {
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--bg-panel);
+  }
+
+  .data-table tbody td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #1a1f2e;
+    font-variant-numeric: tabular-nums;
+    transition: background 0.2s;
+  }
+
+  .data-table tbody tr:hover td {
+    background: var(--bg-panel-alt);
+  }
+
+  .exchange-tag {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 2px;
+    border: 1px solid;
+  }
+
+  .exchange-tag.ccxt { color: var(--accent-amber); border-color: #f59e0b44; background: #f59e0b0a; }
+  .exchange-tag.alpaca { color: var(--accent-green); border-color: #10b98144; background: #10b9810a; }
+  .exchange-tag.polymarket { color: var(--accent-purple); border-color: #a78bfa44; background: #a78bfa0a; }
+
+  .side-buy { color: var(--accent-green); font-weight: 600; }
+  .side-sell { color: var(--accent-red); font-weight: 600; }
+
+  .pnl-positive { color: var(--accent-green); }
+  .pnl-negative { color: var(--accent-red); }
+
+  /* ── Connector List ── */
+  .connector-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .connector-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--bg-panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    font-size: 12px;
+  }
+
+  .connector-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent-green);
+    box-shadow: var(--glow-green);
+    flex-shrink: 0;
+  }
+
+  .connector-name {
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* ── Empty State ── */
+  .empty-state {
+    text-align: center;
+    padding: 32px 20px;
+    color: var(--text-dim);
+    font-size: 12px;
+  }
+
+  .empty-state .icon {
+    font-size: 24px;
+    margin-bottom: 8px;
+    opacity: 0.4;
+  }
+
+  /* ── Log Panel ── */
+  .log-panel {
+    grid-column: 1 / -1;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .log-entries {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 11px;
+  }
+
+  .log-entry {
+    display: flex;
+    gap: 12px;
+    padding: 4px 0;
+    color: var(--text-secondary);
+  }
+
+  .log-time { color: var(--text-dim); flex-shrink: 0; }
+  .log-tag { color: var(--accent-cyan); flex-shrink: 0; min-width: 60px; }
+
+  /* ── Animations ── */
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .panel {
+    animation: fadeSlideIn 0.4s ease-out both;
+  }
+
+  .panel:nth-child(1) { animation-delay: 0.05s; }
+  .panel:nth-child(2) { animation-delay: 0.1s; }
+  .panel:nth-child(3) { animation-delay: 0.15s; }
+  .panel:nth-child(4) { animation-delay: 0.2s; }
+  .panel:nth-child(5) { animation-delay: 0.25s; }
+
+  /* Update flash */
+  @keyframes dataFlash {
+    0% { background: #22d3ee0a; }
+    100% { background: transparent; }
+  }
+
+  .data-flash { animation: dataFlash 0.6s ease-out; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg-primary); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <span class="logo">Tradingbot</span>
+    <span class="version">v0.1.0</span>
+  </div>
+  <div class="header-right">
+    <div class="status-indicator">
+      <div class="status-dot" id="ws-status"></div>
+      <span id="ws-label">connecting</span>
+    </div>
+    <span class="clock" id="clock"></span>
+  </div>
+</header>
+
+<main class="dashboard">
+  <!-- Status Overview -->
+  <div class="panel" id="status-panel">
+    <div class="panel-header">
+      <span class="panel-title">Status</span>
+      <span class="panel-badge" id="engine-state">--</span>
+    </div>
+    <div class="status-grid" id="status-grid">
+      <div class="stat-card">
+        <div class="stat-label">Exchanges</div>
+        <div class="stat-value accent" id="exchange-count">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Strategies</div>
+        <div class="stat-value" id="strategy-count">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Mode</div>
+        <div class="stat-value" id="mode-label" style="font-size:14px">--</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Connectors -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Connectors</span>
+    </div>
+    <div class="connector-list" id="connector-list">
+      <div class="empty-state"><div class="icon">~</div>No connectors active</div>
+    </div>
+  </div>
+
+  <!-- Balances -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Balances</span>
+      <span class="panel-badge" id="balance-count">0 assets</span>
+    </div>
+    <div id="balances-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Exchange</th>
+            <th>Currency</th>
+            <th>Free</th>
+            <th>Used</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody id="balances-body">
+          <tr><td colspan="5" class="empty-state">No balance data</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Positions -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Positions</span>
+      <span class="panel-badge" id="position-count">0 open</span>
+    </div>
+    <div id="positions-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Exchange</th>
+            <th>Symbol</th>
+            <th>Side</th>
+            <th>Qty</th>
+            <th>Entry</th>
+            <th>Current</th>
+            <th>PnL</th>
+          </tr>
+        </thead>
+        <tbody id="positions-body">
+          <tr><td colspan="7" class="empty-state">No open positions</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Activity Log -->
+  <div class="panel log-panel">
+    <div class="panel-header">
+      <span class="panel-title">Activity</span>
+      <span class="panel-badge" id="log-count">0</span>
+    </div>
+    <div class="log-entries" id="log-entries">
+      <div class="log-entry">
+        <span class="log-time">--:--:--</span>
+        <span class="log-tag">SYS</span>
+        <span>Dashboard initialized, awaiting connection...</span>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="/static/dashboard.js"></script>
+</body>
+</html>

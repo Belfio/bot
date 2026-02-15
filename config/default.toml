@@ -1,0 +1,30 @@
+[bot]
+name = "tradingbot"
+dry_run = true
+
+[risk]
+max_position_size = 1000.0
+max_order_value = 500.0
+max_daily_loss = 100.0
+
+[connectors]
+enabled = ["ccxt", "alpaca", "polymarket"]
+
+[connectors.ccxt]
+exchange = "binance"
+testnet = true
+
+[connectors.alpaca]
+paper = true
+
+[connectors.polymarket]
+chain_id = 137
+host = "https://clob.polymarket.com"
+
+[logging]
+level = "INFO"
+format = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+
+[web]
+host = "127.0.0.1"
+port = 8000
